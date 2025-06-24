@@ -12,10 +12,12 @@ export default defineConfig({
       fileName: () => "widget.js",
       formats: ["iife"],
     },
-    rollupOptions: {
-      external: [],
-    },
     minify: "esbuild",
   },
   plugins: [react()],
+  // Polyfills pour bundle IIFE
+  define: {
+    "process.env": {},
+    "process": "( { env: {} } )",
+  },
 });
