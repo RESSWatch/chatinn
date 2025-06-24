@@ -5,12 +5,12 @@ import os, httpx
 
 app = FastAPI(title="ChatInn API")
 
-# --- CORS, autorise tous les domaines ---
+# ———————————  CORS  ———————————
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],      # accepte n’importe quel domaine
-    allow_methods=["*"],      # GET, POST, OPTIONS, etc.
-    allow_headers=["*"],      # Content-Type, Authorization, …
+    allow_origins=["*"],      # autorise tout domaine
+    allow_methods=["*"],      # GET, POST, OPTIONS…
+    allow_headers=["*"],      # Content-Type, Authorization…
 )
 
 MODEL = os.getenv("MODEL_NAME", "mistral-small-latest")
@@ -27,7 +27,8 @@ async def chat(req: ChatRequest):
         resp = await client.post(
             "https://api.mistral.ai/v1/chat/completions",
             headers={"Authorization": f"Bearer {MISTRAL_API_KEY}"},
-            json={"model": MODEL, "messages": req.messages}
+            json={"model": MODEL, "messages": req.messages},
         )
     resp.raise_for_status()
     return resp.json()
+    
