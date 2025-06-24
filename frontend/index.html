@@ -8,12 +8,12 @@
 <body style="margin:0;font-family:Arial,Helvetica,sans-serif">
   <div id="chatinn-root"></div>
 
-  <!-- Polyfill global "process" AVANT le bundle -->
+  <!-- Polyfill global "process" (indispensable) -->
   <script>
-    window.process = window.process || { env: {} };
+    var process = { env: {} };
   </script>
 
-  <!-- Bundle React compilé par Vite -->
+  <!-- Bundle React généré par Vite -->
   <script src="/widget.js"></script>
 </body>
 </html>
