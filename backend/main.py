@@ -1,0 +1,26 @@
+
+import os
+from fastapi import FastAPI
+from pydantic import BaseModel
+import httpx
+
+app = FastAPI(title="ChatInn API")
+
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
+MODEL = os.getenv("MODEL_NAME", "mistral-small-latest")
+
+class ChatRequest(BaseModel):
+    messages: list[dict]
+
+@app.post("/api/chat")
+async def chat(req: ChatRequest):
+    if not MISTRAL_API_KEY:
+        return {"error": "MISTRAL_API_KEY not set"}
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            "https://api.mistral.ai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {MISTRAL_API_KEY}"},
+            json={"model": MODEL, "messages": req.messages}
+        )
+    resp.raise_for_status()
+    return resp.json()
