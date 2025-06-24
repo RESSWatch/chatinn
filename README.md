@@ -1,65 +1,26 @@
 
-# ChatInn – Chatbot IA pour l'hôtellerie
+# ChatInn (Option A) – API & Widget
 
-Ce dépôt contient un **backend FastAPI** et un **widget React** minimal pour
-déployer un chatbot basé sur les API de Mistral.
-
-## Structure
+Cette version fixe l'environnement Python **3.11.8** et des dépendances
+100 % Python pour éviter la compilation Rust sur Render :
 
 ```
-backend/        # API FastAPI
-  main.py
-  requirements.txt
-frontend/
-  ChatWidget.jsx
-  index.js
-.env.example     # variables d'environnement
+fastapi 0.104.1
+pydantic 1.10.15
+uvicorn 0.22.0
+httpx 0.27.0
 ```
 
-## Prérequis
+## Déploiement Render
 
-* Python 3.10+
-* Node 18+
-* Compte **Mistral AI** (clé API)
-* Compte **Railway.app** (ou Render)
-* Git
-
-## Lancement local
-
-```bash
-# Backend
-cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-# Copiez .env.example -> .env puis remplissez MISTRAL_API_KEY
-uvicorn main:app --reload --port 8000
-```
-
-```bash
-# Frontend
-cd ../frontend
-npm install react react-dom
-# Utilise Vite ou un bundler à votre convenance
-```
-
-## Déploiement Railway
-
-1. Crée un nouveau projet **"Deploy from GitHub"**.
-2. Ajoute les variables d'env depuis `.env`.
-3. Build command : `pip install -r backend/requirements.txt`
-4. Start command : `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-
-## Intégration sur un site WordPress
-
-1. Dans le thème, ajoute un `<div id="chatinn-root"></div>` avant la balise `</body>`.
-2. Build le widget (`npm run build`) et téléverse le bundle JS dans `/wp-content/uploads/chatinn/`.
-3. Ajoute un script dans le footer qui charge ce bundle.
-
-## Personnalisation FAQ / RAG
-
-Utilisez un script d'ingestion (à venir) pour indexer vos PDF et pages web dans Supabase
-et adapter le prompt dans `backend/main.py`.
+1. Crée un **Web Service** depuis ce dépôt.
+2. Runtime : Python 3
+3. **Root Directory** : `backend`
+4. Build : `pip install -r requirements.txt`
+5. Start : `uvicorn main:app --host 0.0.0.0 --port $PORT`
+6. Variables :
+   * `MISTRAL_API_KEY`
+   * `MODEL_NAME=mistral-small-latest`
 
 ---
-
-_Généré automatiquement le 2025-06-24T01:29:52.841878_
+_Généré le 2025-06-24T04:30:51.884150_

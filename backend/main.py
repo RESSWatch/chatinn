@@ -1,13 +1,12 @@
 
-import os
 from fastapi import FastAPI
 from pydantic import BaseModel
-import httpx
+import os, httpx
 
 app = FastAPI(title="ChatInn API")
 
-MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 MODEL = os.getenv("MODEL_NAME", "mistral-small-latest")
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
 class ChatRequest(BaseModel):
     messages: list[dict]
