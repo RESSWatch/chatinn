@@ -1,9 +1,18 @@
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os, httpx
 
 app = FastAPI(title="ChatInn API")
+
+# Enable CORS for browser calls
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 MODEL = os.getenv("MODEL_NAME", "mistral-small-latest")
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
