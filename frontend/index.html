@@ -7,6 +7,13 @@
 </head>
 <body style="margin:0;font-family:Arial,Helvetica,sans-serif">
   <div id="chatinn-root"></div>
+
+  <!-- Polyfill global "process" AVANT le bundle -->
+  <script>
+    window.process = window.process || { env: {} };
+  </script>
+
+  <!-- Bundle React compilé par Vite -->
   <script src="/widget.js"></script>
 </body>
 </html>
