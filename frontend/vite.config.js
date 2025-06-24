@@ -14,10 +14,5 @@ export default defineConfig({
     },
     minify: "esbuild",
   },
-  plugins: [react()],
-  // Polyfills pour bundle IIFE
-  define: {
-    "process.env": {},
-    "process": "( { env: {} } )",
-  },
+    plugins: [react()],
 });
