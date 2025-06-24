@@ -1,9 +1,0 @@
-:root{
-  --ci-primary:#0066cc;
-}
-#chatinn-root > div{
-  position:fixed;
-  bottom:24px;
-  right:24px;
-  z-index:9999;
-}
