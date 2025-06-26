@@ -1,31 +1,126 @@
-import { useState, useEffect } from "react";
-import "./theme.css";
-const API_URL="https://chatinn-api.onrender.com/api/chat";
-export default function ChatWidget(){
-  const [messages,setMessages]=useState([]);
-  const [input,setInput]=useState("");
-  const [loading,setLoading]=useState(false);
-  useEffect(()=>{const saved=JSON.parse(localStorage.getItem("chatinn_history")||"[]");if(saved.length)setMessages(saved);},[]);
-  useEffect(()=>{localStorage.setItem("chatinn_history",JSON.stringify(messages));},[messages]);
-  const send=async()=>{ if(!input.trim())return; const newMsgs=[...messages,{role:"user",content:input}]; setMessages(newMsgs); setInput(""); setLoading(true);
-    try{const res=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:newMsgs})}); const data=await res.json();
-      const bot=data.choices?data.choices[0].message:{role:"assistant",content:data.content||"..."}; setMessages([...newMsgs,bot]);}
-    catch(e){setMessages([...newMsgs,{role:"assistant",content:"Erreur: "+e.message}]);}
-    finally{setLoading(false);}
+import React, { useState, useEffect, useRef } from 'react';
+import './theme.css';
+import logo from './assets/logo.png';
+
+export default function ChatWidget() {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sessionId, setSessionId] = useState(null);
+  const [userMsgCount, setUserMsgCount] = useState(0);
+  const [showLeadForm, setShowLeadForm] = useState(false);
+  const [lead, setLead] = useState({ name: '', email: '' });
+  const messagesEndRef = useRef(null);
+
+  const sendEvent = (type, payload = {}) => {
+    if (!sessionId) return;
+    try {
+      navigator.sendBeacon(
+        '/api/events',
+        JSON.stringify({ type, ts: Date.now(), sessionId, ...payload })
+      );
+    } catch (_) {}
   };
-  return(<div style={{width:320,border:'1px solid #ccc',borderRadius:12,boxShadow:'0 2px 8px rgba(0,0,0,.15)',background:'#fff',display:'flex',flexDirection:'column'}}>
-      <div style={{background:'var(--ci-primary)',color:'#fff',padding:8,display:'flex',alignItems:'center',gap:6}}>
-        <img src="/logo.png" alt="logo" style={{height:24}}/><span style={{fontWeight:'bold'}}>Assistant</span></div>
-      <div style={{flex:1,overflowY:'auto',padding:8,maxHeight:400}}>
-        {messages.map((m,i)=>(<p key={i} style={{textAlign:m.role==='user'?'right':'left',margin:'4px 0'}}><strong>{m.role==='user'?'Moi':'Bot'}:</strong> {m.content}</p>))}
-        {loading&&<p style={{fontStyle:'italic',color:'#888'}}>Bot écrit…</p>}
+
+  useEffect(() => {
+    let sid = localStorage.getItem('chatinn_sid');
+    if (!sid) {
+      sid = Math.random().toString(36).slice(2);
+      localStorage.setItem('chatinn_sid', sid);
+    }
+    setSessionId(sid);
+    sendEvent('session_start');
+    return () => sendEvent('session_end');
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+    const userMsg = { from: 'user', text: input.trim() };
+    setMessages((m) => [...m, userMsg]);
+    sendEvent('user_message', { snippet: input.trim().slice(0, 100) });
+    setUserMsgCount((c) => c + 1);
+    setInput('');
+    setLoading(true);
+
+    try {
+      const r = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: userMsg.text })
+      });
+      const data = await r.json();
+      setMessages((m) => [...m, { from: 'bot', text: data.answer }]);
+      sendEvent('bot_message');
+    } catch (err) {
+      setMessages((m) => [...m, { from: 'bot', text: 'Erreur serveur.' }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (userMsgCount >= 3 && !showLeadForm) setShowLeadForm(true);
+  }, [userMsgCount, showLeadForm]);
+
+  const handleLeadSubmit = (e) => {
+    e.preventDefault();
+    setShowLeadForm(false);
+    sendEvent('lead_capture', lead);
+  };
+
+  return (
+    <div className="chat-widget" aria-label="Chat IA ChatInn">
+      <div className="chat-header">
+        <img src={logo} alt="Logo ChatInn" className="logo" />
+        <span>ChatInn AI</span>
       </div>
-      <div style={{display:'flex',gap:4,padding:8}}>
-        <input aria-label="Zone de saisie du message" tabIndex={0}
-          style={{flex:1,border:'1px solid #ccc',borderRadius:4,padding:4}} placeholder="Votre message..."
-          value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')send();}}/>
-        <button aria-label="Envoyer le message" tabIndex={0}
-          style={{background:'var(--ci-primary)',color:'#fff',border:'1px solid var(--ci-primary)',borderRadius:4,padding:'4px 8px'}}
-          onClick={send}>Envoyer</button>
-      </div></div>);
+
+      <div className="chat-body" role="log" aria-live="polite">
+        {messages.map((m, i) => (
+          <div key={i} className={\`msg \${m.from}\`}>
+            {m.text}
+          </div>
+        ))}
+        {loading && <div className="msg bot">…</div>}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {showLeadForm && (
+        <form className="lead-form" onSubmit={handleLeadSubmit}>
+          <input
+            aria-label="Nom"
+            placeholder="Nom"
+            value={lead.name}
+            onChange={(e) => setLead({ ...lead, name: e.target.value })}
+          />
+          <input
+            aria-label="Email"
+            placeholder="Email"
+            type="email"
+            required
+            value={lead.email}
+            onChange={(e) => setLead({ ...lead, email: e.target.value })}
+          />
+          <button type="submit">Envoyer</button>
+        </form>
+      )}
+
+      <form className="input-bar" onSubmit={handleSubmit}>
+        <input
+          aria-label="Votre message"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          disabled={loading}
+        />
+        <button type="submit" disabled={loading}>
+          Envoyer
+        </button>
+      </form>
+    </div>
+  );
 }
