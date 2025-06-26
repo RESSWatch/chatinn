@@ -3,8 +3,8 @@ import { useState, useRef, useEffect } from "react";
 const API_URL_STREAM = "https://chatinn-api.onrender.com/api/chat-stream";
 const BOT_NAME       = "Chat IA";
 
+/* -------------------------------------------------------------------------- */
 export default function ChatWidget() {
-  /* --- state ------------------------------------------------------------ */
   const [messages, setMessages] = useState([]);
   const [input, setInput]       = useState("");
   const [loading, setLoading]   = useState(false);
@@ -16,20 +16,19 @@ export default function ChatWidget() {
   /* auto-scroll */
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  /* ---------------- SEND ----------------------------------------------- */
+  /* ---------------------------------------------------------------- send -- */
   async function send(e) {
     e.preventDefault();
     const txt = input.trim();
     if (!txt) return;
 
-    /* push bulles user + bot */
+    /* ajoute bulles */
     setInput("");
     setMessages(m => [...m, { from: "user", text: txt }, { from: "bot", text: "" }]);
     setLoading(true);
     setUCount(c => c + 1);
 
     try {
-      /* fetch en mode stream */
       const rsp = await fetch(API_URL_STREAM, {
         method : "POST",
         headers: { "Content-Type": "application/json" },
@@ -37,24 +36,33 @@ export default function ChatWidget() {
       });
       if (!rsp.ok) throw new Error("HTTP " + rsp.status);
 
-      const reader = rsp.body.getReader();
-      const decoder = new TextDecoder("utf-8");
-      let done = false;
+      /* ---- lecture flux SSE ---- */
+      const reader  = rsp.body
+        .pipeThrough(new TextDecoderStream())   // décode UTF-8
+        .getReader();
 
-      while (!done) {
-        const { value, done: d } = await reader.read();
-        done = d;
-        if (value) {
-          const chunk = decoder.decode(value);
-          /* chaque token arrive sous forme "data:xxx\n\n" */
-          chunk.split("data:").forEach(token => {
-            if (!token.trim() || token.startsWith("event:")) return;
+      let buffer = "";
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += value;
+
+        /* consomme toutes les lignes complètes "...\n\n"            */
+        let idx;
+        while ((idx = buffer.indexOf("\n\n")) !== -1) {
+          const line = buffer.slice(0, idx).trim(); // one SSE line
+          buffer = buffer.slice(idx + 2);
+
+          if (!line || line.startsWith("event:")) continue; // ignore «done»
+          if (line.startsWith("data:")) {
+            const token = line.slice(5);
             setMessages(m => {
               const arr = [...m];
-              arr[arr.length - 1].text += token.replace(/\n\n$/, "");
+              arr[arr.length - 1].text += token;
               return arr;
             });
-          });
+          }
         }
       }
     } catch (_) {
@@ -68,10 +76,10 @@ export default function ChatWidget() {
     }
   }
 
-  /* après 3 messages → formulaire lead */
+  /* après 3 messages -> formulaire lead */
   useEffect(() => { if (uCount >= 3 && !showLead) setShowLead(true); }, [uCount, showLead]);
 
-  /* ---------------- RENDER --------------------------------------------- */
+  /* ---------------------------------------------------------------- render */
   return (
     <div className="chatinn-floating">
       <div className="chat-widget">
@@ -99,15 +107,15 @@ export default function ChatWidget() {
         )}
 
         <form className="input-bar" onSubmit={send}>
-          <input value={input}
-                 onChange={e => setInput(e.target.value)}
-                 placeholder="Votre message"
-                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }} />
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Votre message"
+            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }}
+          />
           <button disabled={loading}>Envoyer</button>
         </form>
       </div>
     </div>
   );
 }
-
-
