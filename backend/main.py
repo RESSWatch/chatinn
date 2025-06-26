@@ -1,11 +1,11 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, StreamingResponse
+from fastapi import FastAPI
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-import httpx, os, asyncio, json
-
-MISTRAL_API_KEY = os.environ.get("MISTRAL_API_KEY", "")
+import httpx, os
 
 app = FastAPI()
+
+# --- CORS : autorise le widget hébergé ailleurs ---
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,37 +13,24 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/healthz")
-def health():
-    return {"status":"ok"}
+# --- schéma d’entrée ---
+class Msg(BaseModel):
+    text: str
 
+# --- config Mistral ---
+MISTRAL_URL = "https://api.mistral.ai/v1/chat/completions"
+MISTRAL_KEY = os.getenv("MISTRAL_API_KEY")   # définie dans Render ➜ Environment
+
+# --- endpoint non-stream ---
 @app.post("/api/chat")
-async def chat(payload: dict):
-    text = payload.get("text","")
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        r = await client.post(
-            "https://api.mistral.ai/v1/chat/completions",
-            headers={"Authorization": f"Bearer {MISTRAL_API_KEY}"},
-            json={"model":"mistral-small","messages":[{"role":"user","content":text}]}
-        )
-    r.raise_for_status()
-    answer = r.json()["choices"][0]["message"]["content"]
-    return {"answer": answer}
-
-# --- Streaming endpoint ---
-@app.post("/api/chat-stream")
-async def chat_stream(payload: dict):
-    text = payload.get("text","")
-    async def event_generator():
-        # call mistral with stream=true (pseudo, chunk 3s)
-        async with httpx.AsyncClient(timeout=None) as client:
-            async with client.stream(
-                "POST",
-                "https://api.mistral.ai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {MISTRAL_API_KEY}"},
-                json={"model":"mistral-small","messages":[{"role":"user","content":text}],"stream":True},
-            ) as resp:
-                async for chunk in resp.aiter_text():
-                    yield f"data:{chunk}\n\n"
-        yield "event:done\n\n"
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+async def chat(msg: Msg):
+    headers = {"Authorization": f"Bearer {MISTRAL_KEY}"}
+    payload = {
+        "model": "mistral-small",
+        "messages": [{"role": "user", "content": msg.text}],
+    }
+    async with httpx.AsyncClient(timeout=60) as cli:
+        r = await cli.post(MISTRAL_URL, json=payload, headers=headers)
+        r.raise_for_status()
+        answer = r.json()["choices"][0]["message"]["content"]
+        return {"text": answer.strip()}
