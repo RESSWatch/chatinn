@@ -1,74 +1,75 @@
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from 'react'
+import './theme.css'
 
-const API_URL_STREAM = "https://chatinn-api.onrender.com/api/chat-stream";
-const BOT_NAME       = "Chat IA";
+// Nom du bot
+const BOT_NAME = 'Chat IA'
+// URL de ton API streaming (à définir en .env ou sur Render)
+const API_URL_STREAM = import.meta.env.VITE_API_URL + '/api/chat-stream'
 
 export default function ChatWidget() {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput]       = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [uCount, setUCount]     = useState(0);
-  const [showLead, setShowLead] = useState(false);
-  const [lead, setLead]         = useState({ name: "", email: "" });
-  const endRef                  = useRef(null);
+  const [messages, setMessages] = useState([])
+  const [input, setInput] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [uCount, setUCount] = useState(0)
+  const [showLead, setShowLead] = useState(false)
+  const [lead, setLead] = useState({ name: '', email: '' })
+  const endRef = useRef(null)
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  // Scroll vers le bas à chaque nouveau message
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
 
   async function send(e) {
-    e.preventDefault();
-    const txt = input.trim();
-    if (!txt) return;
+    e.preventDefault()
+    const txt = input.trim()
+    if (!txt) return
 
-    setInput("");
-    setMessages(m => [...m, { from: "user", text: txt }, { from: "bot", text: "" }]);
-    setLoading(true);
-    setUCount(c => c + 1);
+    // Ajoute les bulles user + bot vide
+    setInput('')
+    setMessages(m => [...m, { from: 'user', text: txt }, { from: 'bot', text: '' }])
+    setLoading(true)
+    setUCount(c => c + 1)
 
-    try {
-      const rsp = await fetch(API_URL_STREAM, {
-        method : "POST",
-        headers: { "Content-Type": "application/json" },
-        body   : JSON.stringify({ text: txt })
-      });
-      if (!rsp.ok) throw new Error("HTTP " + rsp.status);
+    // Démarre le SSE
+    const eventSrc = new EventSource(API_URL_STREAM)
 
-      const reader = rsp.body
-        .pipeThrough(new TextDecoderStream())
-        .getReader();
-
-      let buffer = "";
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += value;
-
-        let idx;
-        while ((idx = buffer.indexOf("\n\n")) !== -1) {
-          const line = buffer.slice(0, idx).trim();
-          buffer = buffer.slice(idx + 2);
-          if (!line || line.startsWith("event:")) continue;
-          if (line.startsWith("data:")) {
-            const token = line.slice(5);
-            setMessages(m => {
-              const arr = [...m];
-              arr[arr.length - 1].text += token;
-              return arr;
-            });
-          }
-        }
+    eventSrc.onmessage = e => {
+      if (e.data === '[DONE]') {
+        eventSrc.close()
+        setLoading(false)
+        return
       }
-    } catch (_) {
+      try {
+        const parsed = JSON.parse(e.data)
+        const delta = parsed.choices[0].delta.content || ''
+        // Injecte le delta dans la dernière bulle bot
+        setMessages(m => {
+          const arr = [...m]
+          arr[arr.length - 1].text += delta
+          return arr
+        })
+      } catch {
+        // ignore
+      }
+    }
+
+    eventSrc.onerror = () => {
+      // En cas d’erreur SSE
       setMessages(m => {
-        const arr = [...m];
-        arr[arr.length - 1].text = "Erreur serveur.";
-        return arr;
-      });
-    } finally {
-      setLoading(false);
+        const arr = [...m]
+        arr[arr.length - 1].text = 'Erreur serveur.'
+        return arr
+      })
+      eventSrc.close()
+      setLoading(false)
     }
   }
 
-  useEffect(() => { if (uCount >= 3 && !showLead) setShowLead(true); }, [uCount, showLead]);
+  // Affiche le formulaire lead après 3 messages utilisateurs
+  useEffect(() => {
+    if (uCount >= 3 && !showLead) setShowLead(true)
+  }, [uCount, showLead])
 
   return (
     <div className="chatinn-floating">
@@ -77,37 +78,47 @@ export default function ChatWidget() {
           <span role="img" aria-label="logo">💬</span> {BOT_NAME}
         </div>
 
-        <div className="chat-body">
+        <div className="chat-body" role="log" aria-live="polite">
           {messages.map((m, i) => (
-
             <div key={i} className={`msg ${m.from}`}>
-
-
-              {m.text || <span className="typing">•••</span>}
+              {m.text || (loading && m.from === 'bot' ? <span className="typing">•••</span> : null)}
             </div>
           ))}
           <div ref={endRef} />
         </div>
 
         {showLead && (
-          <form className="lead-form" onSubmit={e => { e.preventDefault(); setShowLead(false); }}>
-            <input placeholder="Nom" required value={lead.name}
-                   onChange={e => setLead({ ...lead, name: e.target.value })}/>
-            <input placeholder="Email" required value={lead.email}
-                   onChange={e => setLead({ ...lead, email: e.target.value })}/>
-            <button>Envoyer</button>
+          <form className="lead-form" onSubmit={e => { e.preventDefault(); setShowLead(false) }}>
+            <input
+              type="text"
+              placeholder="Nom"
+              value={lead.name}
+              required
+              onChange={e => setLead({ ...lead, name: e.target.value })}
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={lead.email}
+              required
+              onChange={e => setLead({ ...lead, email: e.target.value })}
+            />
+            <button type="submit">Envoyer</button>
           </form>
         )}
 
         <form className="input-bar" onSubmit={send}>
-          <input value={input}
-                 onChange={e => setInput(e.target.value)}
-                 placeholder="Votre message"
-                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }}/>
-          <button disabled={loading}>Envoyer</button>
+          <input
+            type="text"
+            placeholder="Votre message"
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) send(e) }}
+            disabled={loading}
+          />
+          <button type="submit" disabled={loading}>Envoyer</button>
         </form>
       </div>
     </div>
-  );
+  )
 }
-
