@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './theme.css';
 
 const BOT_NAME = 'Chat IA';
-const API_URL_STREAM = 'https://chatinn-api.onrender.com/api/chat-stream';
+const API_URL = 'https://chatinn-api.onrender.com/api/chat';   // endpoint non-stream
 
 export default function ChatWidget() {
   const [messages, setMessages] = useState([]);
@@ -13,12 +13,12 @@ export default function ChatWidget() {
   const [lead, setLead] = useState({ name: '', email: '' });
   const endRef = useRef(null);
 
-  /* ----- scroll auto ----- */
+  /* scroll vers le bas à chaque nouveau message */
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  /* ----- envoi ----- */
+  /* -------- envoi du message -------- */
   async function send(e) {
     e.preventDefault();
     const txt = input.trim();
@@ -28,74 +28,76 @@ export default function ChatWidget() {
     setLoading(true);
     setUCount(c => c + 1);
 
-    - const eventSrc = new EventSource(API_URL_STREAM, …);
-- eventSrc.onmessage = …
-- eventSrc.onerror = …
-- eventSrc.addEventListener('done', …);
-+ const rsp = await fetch('https://chatinn-api.onrender.com/api/chat', {
-+     method:'POST',
-+     headers:{'Content-Type':'application/json'},
-+     body: JSON.stringify({text: txt})
-+ });
-+ const data = await rsp.json();        // <-- backend doit renvoyer {text: "..."}
-+ setMessages(m=>{
-+      const arr=[...m];
-+      arr[arr.length-1].text = data.text;
-+      return arr;
-+ });
-+ setLoading(false);
-
-    );
-
-    eventSrc.onmessage = e => {
+    try {
+      const rsp = await fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: txt })
+      });
+      const data = await rsp.json();         // backend doit renvoyer { text: "..." }
       setMessages(m => {
         const arr = [...m];
-        arr[arr.length - 1].text += e.data;
+        arr[arr.length - 1].text = data.text;
         return arr;
       });
-    };
-    eventSrc.onerror = () => { eventSrc.close(); setLoading(false); };
-    eventSrc.addEventListener('done', () => { eventSrc.close(); setLoading(false); });
+    } catch (err) {
+      setMessages(m => {
+        const arr = [...m];
+        arr[arr.length - 1].text = 'Erreur serveur.';
+        return arr;
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
-  /* ----- lead form après 3 messages ----- */
-  useEffect(() => { if (uCount >= 3 && !showLead) setShowLead(true); }, [uCount, showLead]);
+  /* affichage du lead form après 3 messages utilisateur */
+  useEffect(() => {
+    if (uCount >= 3 && !showLead) setShowLead(true);
+  }, [uCount, showLead]);
 
   return (
-    <div className="chat-widget">
-      <div className="chat-header"><span role="img" aria-label="logo">💬</span> {BOT_NAME}</div>
+    <div className="chatinn-floating">
+      <div className="chat-widget">
+        <div className="chat-header">
+          <span role="img" aria-label="logo">💬</span> {BOT_NAME}
+        </div>
 
-      <div className="chat-body">
- HEAD
-        {messages.map((m,i)=>(<div key={i} className={`msg ${m.from}`}>{m.text || <span className="spinner"/>}</div>))}
-        <div ref={endRef}/>
+        <div className="chat-body">
+          {messages.map((m, i) => (
+            <div key={i} className={`msg ${m.from}`}>
+              {m.text || <span className="spinner" />}
+            </div>
+          ))}
+          <div ref={endRef} />
+        </div>
 
-        {messages.map((m, i) => (
-          <div key={i} className={`msg ${m.from}`}>
-            {m.text || <span className="spinner" />}
-          </div>
-        ))}
-        <div ref={endRef} />
- 7634faf (fix: correct template literals (className))
-      </div>
+        {showLead && (
+          <form className="lead-form" onSubmit={e => { e.preventDefault(); setShowLead(false); }}>
+            <input placeholder="Nom" value={lead.name}
+                   onChange={e => setLead({ ...lead, name: e.target.value })} />
+            <input placeholder="Email" required value={lead.email}
+                   onChange={e => setLead({ ...lead, email: e.target.value })} />
+            <button>Envoyer</button>
+          </form>
+        )}
 
-      {showLead && (
-        <form className="lead-form" onSubmit={e => { e.preventDefault(); setShowLead(false); }}>
-          <input placeholder="Nom" value={lead.name} onChange={e => setLead({ ...lead, name: e.target.value })} />
-          <input placeholder="Email" required value={lead.email} onChange={e => setLead({ ...lead, email: e.target.value })} />
-          <button>Envoyer</button>
+        <form className="input-bar" onSubmit={send}>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            placeholder="Votre message"
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey) send(e);
+            }}
+          />
+          <button disabled={loading}>Envoyer</button>
         </form>
-      )}
+      </div>
+    </div>
+  );
+}
 
-      <form className="input-bar" onSubmit={send}>
-        <input
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Votre message"
-          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) send(e); }}
-        />
-        <button>Envoyer</button>
-      </form>
     </div>
   );
 }
