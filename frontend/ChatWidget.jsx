@@ -79,7 +79,10 @@ export default function ChatWidget() {
 
         <div className="chat-body">
           {messages.map((m, i) => (
-            <div key={i} className={`msg ${m.from}\`}>
+
+            <div key={i} className={`msg ${m.from}`}>
+
+
               {m.text || <span className="typing">•••</span>}
             </div>
           ))}
@@ -106,4 +109,8 @@ export default function ChatWidget() {
       </div>
     </div>
   );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> b4bd777 (refactor: full PRO widget + API)
