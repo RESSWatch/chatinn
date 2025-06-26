@@ -1,9 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 
 const API_URL_STREAM = "https://chatinn-api.onrender.com/api/chat-stream";
-const BOT_NAME      = "Chat IA";
+const BOT_NAME       = "Chat IA";
 
 export default function ChatWidget() {
+  /* --- state ------------------------------------------------------------ */
   const [messages, setMessages] = useState([]);
   const [input, setInput]       = useState("");
   const [loading, setLoading]   = useState(false);
@@ -15,49 +16,62 @@ export default function ChatWidget() {
   /* auto-scroll */
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  /* -------- SEND -------- */
+  /* ---------------- SEND ----------------------------------------------- */
   async function send(e) {
     e.preventDefault();
     const txt = input.trim();
     if (!txt) return;
 
+    /* push bulles user + bot */
     setInput("");
     setMessages(m => [...m, { from: "user", text: txt }, { from: "bot", text: "" }]);
     setLoading(true);
     setUCount(c => c + 1);
 
     try {
-      /* streaming SSE */
-      const evt = new EventSource(API_URL_STREAM, {
+      /* fetch en mode stream */
+      const rsp = await fetch(API_URL_STREAM, {
         method : "POST",
         headers: { "Content-Type": "application/json" },
         body   : JSON.stringify({ text: txt })
       });
+      if (!rsp.ok) throw new Error("HTTP " + rsp.status);
 
-      evt.onmessage = ev => {
-        setMessages(m => {
-          const arr = [...m];
-          arr[arr.length - 1].text += ev.data;     // concatène token
-          return arr;
-        });
-      };
+      const reader = rsp.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+      let done = false;
 
-      evt.addEventListener("done", () => { evt.close(); setLoading(false); });
-      evt.onerror = () => { evt.close(); setLoading(false); };
+      while (!done) {
+        const { value, done: d } = await reader.read();
+        done = d;
+        if (value) {
+          const chunk = decoder.decode(value);
+          /* chaque token arrive sous forme "data:xxx\n\n" */
+          chunk.split("data:").forEach(token => {
+            if (!token.trim() || token.startsWith("event:")) return;
+            setMessages(m => {
+              const arr = [...m];
+              arr[arr.length - 1].text += token.replace(/\n\n$/, "");
+              return arr;
+            });
+          });
+        }
+      }
     } catch (_) {
       setMessages(m => {
         const arr = [...m];
         arr[arr.length - 1].text = "Erreur serveur.";
         return arr;
       });
+    } finally {
       setLoading(false);
     }
   }
 
-  /* après 3 messages utilisateur → formulaire lead */
+  /* après 3 messages → formulaire lead */
   useEffect(() => { if (uCount >= 3 && !showLead) setShowLead(true); }, [uCount, showLead]);
 
-  /* -------- RENDER -------- */
+  /* ---------------- RENDER --------------------------------------------- */
   return (
     <div className="chatinn-floating">
       <div className="chat-widget">
@@ -85,7 +99,8 @@ export default function ChatWidget() {
         )}
 
         <form className="input-bar" onSubmit={send}>
-          <input value={input} onChange={e => setInput(e.target.value)}
+          <input value={input}
+                 onChange={e => setInput(e.target.value)}
                  placeholder="Votre message"
                  onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }} />
           <button disabled={loading}>Envoyer</button>
@@ -94,4 +109,5 @@ export default function ChatWidget() {
     </div>
   );
 }
+
 
