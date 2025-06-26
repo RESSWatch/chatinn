@@ -109,8 +109,5 @@ export default function ChatWidget() {
       </div>
     </div>
   );
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> b4bd777 (refactor: full PRO widget + API)
+
