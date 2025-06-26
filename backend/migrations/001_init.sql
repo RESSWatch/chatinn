@@ -1,0 +1,11 @@
+CREATE TABLE IF NOT EXISTS conversation (
+    id SERIAL PRIMARY KEY,
+    started_at TIMESTAMP DEFAULT NOW()
+);
+CREATE TABLE IF NOT EXISTS message (
+    id SERIAL PRIMARY KEY,
+    conversation_id INTEGER REFERENCES conversation(id) ON DELETE CASCADE,
+    role VARCHAR(20) NOT NULL,
+    content TEXT NOT NULL,
+    ts TIMESTAMP DEFAULT NOW()
+);
