@@ -28,13 +28,23 @@ export default function ChatWidget() {
     setLoading(true);
     setUCount(c => c + 1);
 
-    const eventSrc = new EventSource(
-      API_URL_STREAM,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: txt })
-      }
+    - const eventSrc = new EventSource(API_URL_STREAM, …);
+- eventSrc.onmessage = …
+- eventSrc.onerror = …
+- eventSrc.addEventListener('done', …);
++ const rsp = await fetch('https://chatinn-api.onrender.com/api/chat', {
++     method:'POST',
++     headers:{'Content-Type':'application/json'},
++     body: JSON.stringify({text: txt})
++ });
++ const data = await rsp.json();        // <-- backend doit renvoyer {text: "..."}
++ setMessages(m=>{
++      const arr=[...m];
++      arr[arr.length-1].text = data.text;
++      return arr;
++ });
++ setLoading(false);
+
     );
 
     eventSrc.onmessage = e => {
