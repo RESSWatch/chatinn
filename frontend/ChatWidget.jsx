@@ -1,49 +1,67 @@
-import React, { useState } from 'react'
-import './theme.css'
+// frontend/ChatWidget.jsx
+import React, { useState, useRef, useEffect } from "react";
 
-const API = import.meta.env.VITE_API_URL || ''
+const API_URL = import.meta.env.VITE_API_URL || "";
 
 export default function ChatWidget() {
-  const [messages, setMessages] = useState([])
-  const [input, setInput] = useState('')
+  const [messages, setMessages] = useState([]);         // {from:'user'|'bot', text}
+  const [input, setInput]       = useState("");
+  const endRef                 = useRef(null);
 
-  async function send(e) {
-    e.preventDefault()
-    if (!input.trim()) return
-    setMessages(m => [...m, { from: 'user', text: input }])
-    setInput('')
+  // scroll automatique en bas
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  async function sendMessage(e) {
+    e.preventDefault();
+    const text = input.trim();
+    if (!text) return;
+    // ajoute le message utilisateur
+    setMessages((m) => [...m, { from: "user", text }]);
+    setInput("");
 
     try {
-      const rsp = await fetch(`${API}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: input }),
-      })
-      const { text } = await rsp.json()
-      setMessages(m => [...m, { from: 'bot', text }])
+      // appel POST JSON non‐stream
+      const res = await fetch(`${API_URL}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || res.statusText);
+      }
+      const { text: botText } = await res.json();
+      setMessages((m) => [...m, { from: "bot", text: botText }]);
     } catch {
-      setMessages(m => [...m, { from: 'bot', text: 'Erreur serveur.' }])
+      setMessages((m) => [
+        ...m,
+        { from: "bot", text: "Erreur serveur." },
+      ]);
     }
   }
 
   return (
-    <div className="chat-widget">
+    <div className="chat-wrapper">
       <div className="chat-header">Chat IA</div>
-      <div className="chat-body">
-        {messages.map((m,i) => (
+      <div className="chat-body" role="log" aria-live="polite">
+        {messages.map((m, i) => (
           <div key={i} className={`msg ${m.from}`}>
             {m.text}
           </div>
         ))}
+        <div ref={endRef} />
       </div>
-      <form className="input-bar" onSubmit={send}>
+      <form className="chat-input" onSubmit={sendMessage}>
         <input
+          type="text"
+          placeholder="Écrivez votre message…"
           value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Votre message"
+          onChange={(e) => setInput(e.target.value)}
         />
-        <button>Envoyer</button>
+        <button type="submit">Envoyer</button>
       </form>
     </div>
-  )
+  );
 }

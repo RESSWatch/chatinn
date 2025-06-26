@@ -1,22 +1,17 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
-
-export default defineConfig({
-  plugins: [react()],
-  build: {
-    outDir: "dist",
-    emptyOutDir: true
-  }
-});
-// vite.config.js
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import EnvironmentPlugin from 'vite-plugin-environment'
+
+// Si tu utilises une variable d'env .env à la racine de frontend :
+// import dotenv from 'dotenv'
+// dotenv.config()
 
 export default defineConfig({
-  plugins: [
-    react(),
-    // expose toutes les VITE_* à import.meta.env
-    EnvironmentPlugin('all', { prefix: 'VITE_' }),
-  ],
+  // si ton index.html est à la racine de frontend :
+  root: '.',
+  build: {
+    // le dossier de sortie (dist/) sera créé à côté de frontend/
+    outDir: '../dist',
+    emptyOutDir: true
+  },
+  plugins: [react()]
 })
