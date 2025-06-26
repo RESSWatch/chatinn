@@ -82,7 +82,7 @@ export default function ChatWidget() {
 
       <div className="chat-body" role="log" aria-live="polite">
         {messages.map((m, i) => (
-          <div key={i} className={\`msg \${m.from}\`}>
+          <div key={i} className={`msg ${m.from}`}>
             {m.text}
           </div>
         ))}
