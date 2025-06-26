@@ -1,66 +1,39 @@
-/* ----- position ----- */
-.chatinn-floating {
-  position: fixed;
-  bottom: 20px;
-  right: 20px;
-  z-index: 9999;
-  font-family: system-ui, Arial, sans-serif;
+/* --- conteneur flottant en bas à droite --- */
+.chatinn-floating{
+  position:fixed; bottom:24px; right:24px; z-index:9999;
+  font-family:system-ui,Segoe UI,Helvetica,Arial,sans-serif; font-size:14px;
 }
 
-/* plein-écran mobile */
-@media(max-width:480px){
-  .chatinn-floating{top:0;left:0;right:0;bottom:0;}
-}
-
-/* ----- widget ----- */
+/* --- widget box --- */
 .chat-widget{
-  width:320px;
-  max-height:500px;
-  display:flex;
-  flex-direction:column;
-  border:1px solid #d0d5dd;
-  border-radius:8px;
+  width:320px; height:480px; display:flex; flex-direction:column;
+  border-radius:4px; box-shadow:0 4px 12px rgba(0,0,0,.15); overflow:hidden;
   background:#fff;
-  box-shadow:0 4px 14px rgba(0,0,0,.12);
 }
 
+/* header */
 .chat-header{
-  background:#0057ff;
-  color:#fff;
-  padding:8px 12px;
-  font-weight:600;
-  border-radius:8px 8px 0 0;
-  display:flex;
-  align-items:center;
-  gap:6px;
+  background:#0065ff; color:#fff; padding:8px 12px; font-weight:600;
 }
 
+/* body messages */
 .chat-body{
-  flex:1;
-  overflow-y:auto;
-  padding:8px;
-  background:#fafafa;
+  flex:1; padding:8px; overflow-y:auto;
 }
-
-.msg{padding:6px 10px;margin:4px 0;border-radius:6px;max-width:80%}
-.msg.user{background:#e6f7ff;margin-left:auto}
-.msg.bot {background:#e9ffe6;color:#0a0a0a}
+.msg{max-width:88%; margin:4px 0; padding:6px 8px; border-radius:4px; line-height:1.4}
+.msg.user{align-self:flex-end; background:#e8f4ff}
+.msg.bot {align-self:flex-start;background:#dff7df}
+/* spinner / typing */
+.typing{animation:blink 1s infinite; letter-spacing:2px}
+@keyframes blink{0%{opacity:.2}50%{opacity:1}100%{opacity:.2}}
 
 /* lead form */
-.lead-form{display:flex;flex-direction:column;gap:6px;padding:8px}
-.lead-form input{padding:6px;border:1px solid #ccc;border-radius:4px}
-.lead-form button{padding:6px;background:#0057ff;color:#fff;border:none;border-radius:4px;cursor:pointer}
+.lead-form{padding:8px; display:flex; flex-direction:column; gap:6px}
+.lead-form input{padding:6px; border:1px solid #ccc; border-radius:4px}
+.lead-form button{padding:6px; background:#0065ff; color:#fff; border:none; border-radius:4px}
 
-/* barre d’entrée */
-.input-bar{display:flex}
-.input-bar input{flex:1;padding:6px;border:1px solid #ccc;border-radius:0 0 0 6px}
-.input-bar button{background:#0057ff;color:#fff;border:none;padding:6px 12px;border-radius:0 0 6px 0;cursor:pointer}
+/* input bar */
+.input-bar{display:flex; border-top:1px solid #eee}
+.input-bar input{flex:1; border:none; padding:8px}
+.input-bar button{border:none; background:#0065ff;color:#fff;padding:8px 10px}
 
-/* spinner */
-.spinner{
-  width:16px;height:16px;
-  border:3px solid #c7c7c7;border-top-color:#0057ff;
-  border-radius:50%;
-  animation:spin .8s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
