@@ -1,71 +1,49 @@
-import React, { useState, useEffect, useRef } from 'react';
-import './theme.css';
+import React, { useState } from 'react'
+import './theme.css'
 
-const API_URL = import.meta.env.VITE_API_URL;
+const API = import.meta.env.VITE_API_URL || ''
 
 export default function ChatWidget() {
-  const [messages, setMessages] = useState([]);
-  const [input, setInput]       = useState('');
-  const [loading, setLoading]   = useState(false);
-  const endRef = useRef(null);
+  const [messages, setMessages] = useState([])
+  const [input, setInput] = useState('')
 
-  // Scroll automatique
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  // Envoi du message
   async function send(e) {
-    e.preventDefault();
-    const text = input.trim();
-    if (!text) return;
-    // ajout du message utilisateur
-    setMessages(m => [...m, { from: 'me', text }]);
-    setInput('');
-    setLoading(true);
+    e.preventDefault()
+    if (!input.trim()) return
+    setMessages(m => [...m, { from: 'user', text: input }])
+    setInput('')
 
     try {
-      const resp = await fetch(`${API_URL}/api/chat`, {
-        method:  'POST',
+      const rsp = await fetch(`${API}/api/chat`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ text })
-      });
-      const { text: botText } = await resp.json();
-      setMessages(m => [...m, { from: 'bot', text: botText }]);
+        body: JSON.stringify({ text: input }),
+      })
+      const { text } = await rsp.json()
+      setMessages(m => [...m, { from: 'bot', text }])
     } catch {
-      setMessages(m => [...m, { from: 'bot', text: 'Erreur serveur.' }]);
-    } finally {
-      setLoading(false);
+      setMessages(m => [...m, { from: 'bot', text: 'Erreur serveur.' }])
     }
   }
 
   return (
-    <div className="chatinn-floating">
-      <div className="chat-widget">
-        <div className="chat-header">Chat IA</div>
-        <div className="chat-body">
-          {messages.map((m,i) => (
-            <div key={i} className={`msg ${m.from}`}>
-              {m.text}
-            </div>
-          ))}
-          {loading && (
-            <div className="msg bot">
-              <span className="typing">•••</span>
-            </div>
-          )}
-          <div ref={endRef} />
-        </div>
-        <form className="input-bar" onSubmit={send}>
-          <input
-            type="text"
-            placeholder="Votre message"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-          />
-          <button type="submit">Envoyer</button>
-        </form>
+    <div className="chat-widget">
+      <div className="chat-header">Chat IA</div>
+      <div className="chat-body">
+        {messages.map((m,i) => (
+          <div key={i} className={`msg ${m.from}`}>
+            {m.text}
+          </div>
+        ))}
       </div>
+      <form className="input-bar" onSubmit={send}>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Votre message"
+        />
+        <button>Envoyer</button>
+      </form>
     </div>
-  );
+  )
 }
