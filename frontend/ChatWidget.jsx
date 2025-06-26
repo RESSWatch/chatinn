@@ -13,12 +13,12 @@ export default function ChatWidget() {
   const [lead, setLead] = useState({ name: '', email: '' });
   const endRef = useRef(null);
 
-  /* scroll vers le bas à chaque nouveau message */
+  /* --- scroll auto --- */
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  /* -------- envoi du message -------- */
+  /* --- envoi --- */
   async function send(e) {
     e.preventDefault();
     const txt = input.trim();
@@ -34,13 +34,13 @@ export default function ChatWidget() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text: txt })
       });
-      const data = await rsp.json();         // backend doit renvoyer { text: "..." }
+      const data = await rsp.json();                 // { text: "…" }
       setMessages(m => {
         const arr = [...m];
         arr[arr.length - 1].text = data.text;
         return arr;
       });
-    } catch (err) {
+    } catch (_) {
       setMessages(m => {
         const arr = [...m];
         arr[arr.length - 1].text = 'Erreur serveur.';
@@ -51,7 +51,7 @@ export default function ChatWidget() {
     }
   }
 
-  /* affichage du lead form après 3 messages utilisateur */
+  /* --- lead form après 3 messages --- */
   useEffect(() => {
     if (uCount >= 3 && !showLead) setShowLead(true);
   }, [uCount, showLead]);
@@ -59,6 +59,7 @@ export default function ChatWidget() {
   return (
     <div className="chatinn-floating">
       <div className="chat-widget">
+
         <div className="chat-header">
           <span role="img" aria-label="logo">💬</span> {BOT_NAME}
         </div>
@@ -87,17 +88,13 @@ export default function ChatWidget() {
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder="Votre message"
-            onKeyDown={e => {
-              if (e.key === 'Enter' && !e.shiftKey) send(e);
-            }}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) send(e); }}
           />
           <button disabled={loading}>Envoyer</button>
         </form>
+
       </div>
     </div>
   );
 }
 
-    </div>
-  );
-}
