@@ -42,7 +42,7 @@ export default function ChatWidget(){
     <div className="chat-widget">
       <div className="chat-header"><span role="img" aria-label="logo">💬</span>{BOT_NAME}</div>
       <div className="chat-body">
-        {messages.map((m,i)=>(<div key={i} className={\`msg \${m.from}\`}>{m.text||<span className="spinner"/>}</div>))}
+        {messages.map((m,i)=>(<div key={i} className={`msg ${m.from}`}>{m.text || <span className="spinner"/>}</div>))}
         <div ref={endRef}/>
       </div>
       {showLead&&<form className="lead-form" onSubmit={e=>{e.preventDefault();setShowLead(false);}}>
