@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './theme.css';
-import logo from './assets/logo.png';
+import logo from './public/logo.png';
 
 export default function ChatWidget() {
   const [messages, setMessages] = useState([]);
