@@ -1,3 +1,13 @@
 .env 
 frontend/node_modules/
+<<<<<<< HEAD
 dist/
+=======
+frontend/node_modules/
+<<<<<<< HEAD
+Add-Content -Path .gitignore -Value "`ndist/"
+Add-Content -Path .gitignore -Value "`nfrontend/node_modules/"
+=======
+dist/
+>>>>>>> ed389ea (feat: Sprint 1 – streaming & UX (proper import))
+>>>>>>> d5afde4 (feat: Sprint 1 – streaming & UX (proper import))
