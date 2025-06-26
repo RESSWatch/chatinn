@@ -79,7 +79,7 @@ export default function ChatWidget() {
 
         <div className="chat-body">
           {messages.map((m, i) => (
-            <div key={i} className={\`msg \${m.from}\`}>
+            <div key={i} className={`msg ${m.from}\`}>
               {m.text || <span className="typing">•••</span>}
             </div>
           ))}
