@@ -3,7 +3,6 @@ import { useState, useRef, useEffect } from "react";
 const API_URL_STREAM = "https://chatinn-api.onrender.com/api/chat-stream";
 const BOT_NAME       = "Chat IA";
 
-/* -------------------------------------------------------------------------- */
 export default function ChatWidget() {
   const [messages, setMessages] = useState([]);
   const [input, setInput]       = useState("");
@@ -13,16 +12,13 @@ export default function ChatWidget() {
   const [lead, setLead]         = useState({ name: "", email: "" });
   const endRef                  = useRef(null);
 
-  /* auto-scroll */
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
 
-  /* ---------------------------------------------------------------- send -- */
   async function send(e) {
     e.preventDefault();
     const txt = input.trim();
     if (!txt) return;
 
-    /* ajoute bulles */
     setInput("");
     setMessages(m => [...m, { from: "user", text: txt }, { from: "bot", text: "" }]);
     setLoading(true);
@@ -36,25 +32,21 @@ export default function ChatWidget() {
       });
       if (!rsp.ok) throw new Error("HTTP " + rsp.status);
 
-      /* ---- lecture flux SSE ---- */
-      const reader  = rsp.body
-        .pipeThrough(new TextDecoderStream())   // décode UTF-8
+      const reader = rsp.body
+        .pipeThrough(new TextDecoderStream())
         .getReader();
 
       let buffer = "";
-
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += value;
 
-        /* consomme toutes les lignes complètes "...\n\n"            */
         let idx;
         while ((idx = buffer.indexOf("\n\n")) !== -1) {
-          const line = buffer.slice(0, idx).trim(); // one SSE line
+          const line = buffer.slice(0, idx).trim();
           buffer = buffer.slice(idx + 2);
-
-          if (!line || line.startsWith("event:")) continue; // ignore «done»
+          if (!line || line.startsWith("event:")) continue;
           if (line.startsWith("data:")) {
             const token = line.slice(5);
             setMessages(m => {
@@ -76,10 +68,8 @@ export default function ChatWidget() {
     }
   }
 
-  /* après 3 messages -> formulaire lead */
   useEffect(() => { if (uCount >= 3 && !showLead) setShowLead(true); }, [uCount, showLead]);
 
-  /* ---------------------------------------------------------------- render */
   return (
     <div className="chatinn-floating">
       <div className="chat-widget">
@@ -89,7 +79,7 @@ export default function ChatWidget() {
 
         <div className="chat-body">
           {messages.map((m, i) => (
-            <div key={i} className={`msg ${m.from}`}>
+            <div key={i} className={\`msg \${m.from}\`}>
               {m.text || <span className="typing">•••</span>}
             </div>
           ))}
@@ -98,21 +88,19 @@ export default function ChatWidget() {
 
         {showLead && (
           <form className="lead-form" onSubmit={e => { e.preventDefault(); setShowLead(false); }}>
-            <input placeholder="Nom"   required value={lead.name}
-                   onChange={e => setLead({ ...lead, name: e.target.value })} />
+            <input placeholder="Nom" required value={lead.name}
+                   onChange={e => setLead({ ...lead, name: e.target.value })}/>
             <input placeholder="Email" required value={lead.email}
-                   onChange={e => setLead({ ...lead, email: e.target.value })} />
+                   onChange={e => setLead({ ...lead, email: e.target.value })}/>
             <button>Envoyer</button>
           </form>
         )}
 
         <form className="input-bar" onSubmit={send}>
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="Votre message"
-            onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }}
-          />
+          <input value={input}
+                 onChange={e => setInput(e.target.value)}
+                 placeholder="Votre message"
+                 onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) send(e); }}/>
           <button disabled={loading}>Envoyer</button>
         </form>
       </div>
